@@ -1195,7 +1195,8 @@ static void validate_response_header(protocol_binary_response_no_extras *respons
     } else {
         assert(response->message.header.response.cas == 0);
         assert(response->message.header.response.extlen == 0);
-        if (cmd != PROTOCOL_BINARY_CMD_GETK) {
+        if (cmd != PROTOCOL_BINARY_CMD_GETK &&
+            cmd != PROTOCOL_BINARY_CMD_GATK) {
             assert(response->message.header.response.keylen == 0);
         }
     }
@@ -1882,10 +1883,8 @@ static enum test_return test_binary_scrub(void) {
     safe_recv_packet(buffer.bytes, sizeof(buffer.bytes));
     validate_response_header(&buffer.response, PROTOCOL_BINARY_CMD_SCRUB,
                              PROTOCOL_BINARY_RESPONSE_SUCCESS);
-
     return TEST_PASS;
 }
-
 
 volatile bool hickup_thread_running;
 
@@ -1970,6 +1969,15 @@ static enum test_return test_binary_pipeline_hickup_chunk(void *buffer, size_t b
         case PROTOCOL_BINARY_CMD_GETQ:
             len = raw_command(command.bytes, sizeof(command.bytes), cmd,
                              key, keylen, NULL, 0);
+            break;
+
+        case PROTOCOL_BINARY_CMD_TOUCH:
+        case PROTOCOL_BINARY_CMD_GAT:
+        case PROTOCOL_BINARY_CMD_GATQ:
+        case PROTOCOL_BINARY_CMD_GATK:
+        case PROTOCOL_BINARY_CMD_GATKQ:
+            len = raw_command(command.bytes, sizeof(command.bytes), cmd,
+                              key, keylen, NULL, 10);
             break;
 
         case PROTOCOL_BINARY_CMD_STAT:

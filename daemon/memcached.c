@@ -2939,6 +2939,12 @@ static void dispatch_bin_command(conn *c) {
     case PROTOCOL_BINARY_CMD_GETKQ:
         c->cmd = PROTOCOL_BINARY_CMD_GETK;
         break;
+    case PROTOCOL_BINARY_CMD_GATQ:
+        c->cmd = PROTOCOL_BINARY_CMD_GAT;
+        break;
+    case PROTOCOL_BINARY_CMD_GATKQ:
+        c->cmd = PROTOCOL_BINARY_CMD_GAT;
+        break;
     default:
         c->noreply = false;
     }
