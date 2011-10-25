@@ -1726,7 +1726,8 @@ static void process_bin_get(conn *c) {
 
         add_iov(c, info.value[0].iov_base, info.value[0].iov_len);
         conn_set_state(c, conn_mwrite);
-        /* Remember this item so we can garbage collect it later */
+        c->write_and_go = conn_new_cmd;
+        /* Remember this command so we can garbage collect it later */
         c->item = it;
         break;
     case ENGINE_KEY_ENOENT:
