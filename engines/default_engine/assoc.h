@@ -1,6 +1,8 @@
 #ifndef ASSOC_H
 #define ASSOC_H
 
+#define hashsize(n) ((uint32_t)1<<(n))
+
 struct assoc {
    /* how many powers of 2's worth of buckets we use */
    unsigned int hashpower;

@@ -411,7 +411,15 @@ static ENGINE_ERROR_CODE default_get_stats(ENGINE_HANDLE* handle,
       add_stat("reclaimed", 9, val, len, cookie);
       len = sprintf(val, "%"PRIu64, (uint64_t)engine->config.maxbytes);
       add_stat("engine_maxbytes", 15, val, len, cookie);
+      len = sprintf(val, "%"PRIu64, (uint64_t)engine->assoc.hashpower);
+      add_stat("hash_power_level", 15, val, len, cookie);
+      len = sprintf(val, "%"PRIu64,
+                    (uint64_t)(hashsize(engine->assoc.hashpower)) * sizeof(void *));
+      add_stat("hash_bytes", 15, val, len, cookie);
+      len = sprintf(val, "%u", engine->assoc.expanding);
+      add_stat("hash_is_expanding", 15, val, len, cookie);
       pthread_mutex_unlock(&engine->stats.lock);
+
    } else if (strncmp(stat_key, "slabs", 5) == 0) {
       slabs_stats(engine, add_stat, cookie);
    } else if (strncmp(stat_key, "items", 5) == 0) {

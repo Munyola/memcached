@@ -451,6 +451,10 @@ integers separated by a colon (treat this as a floating point number).
 |                       |         | another due to hitting the -R limit.      |
 | tap_<....>_sent       | 64u     | Number of times we sent a certain tap msg |
 | tap_<....>_received   | 64u     | Number of times we received the tap msg   |
+| hash_power_level      | 32u     | Current size multiplier for hash table    |
+| hash_bytes            | 64u     | Bytes currently used by hash tables       |
+| hash_is_expanding     | bool    | Indicates if the hash table is being      |
+|                       |         | grown to a new size
 |-----------------------+---------+-------------------------------------------|
 
 Settings statistics

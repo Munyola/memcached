@@ -14,7 +14,6 @@
 
 #include "default_engine.h"
 
-#define hashsize(n) ((uint32_t)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
 
 ENGINE_ERROR_CODE assoc_init(struct default_engine *engine) {
