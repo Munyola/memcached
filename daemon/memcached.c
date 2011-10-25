@@ -264,6 +264,7 @@ static void settings_init(void) {
     settings.item_size_max = 1024 * 1024; /* The famous 1MB upper limit. */
     settings.require_sasl = false;
     settings.extensions.logger = get_stderr_logger();
+    settings.maxconns_fast = false;
 }
 
 /*
@@ -3719,6 +3720,9 @@ static void server_stats(ADD_STAT add_stats, conn *c, bool aggregate) {
     APPEND_STAT("daemon_connections", "%u", stats.daemon_conns);
     APPEND_STAT("curr_connections", "%u", stats.curr_conns);
     APPEND_STAT("total_connections", "%u", stats.total_conns);
+    if (settings.maxconns_fast) {
+        APPEND_STAT("rejected_connections", "%llu", (unsigned long long)stats.rejected_conns);
+    }
     APPEND_STAT("connection_structures", "%u", stats.conn_structs);
     APPEND_STAT("cmd_get", "%"PRIu64, thread_stats.cmd_get);
     APPEND_STAT("cmd_set", "%"PRIu64, slab_stats.cmd_set);
@@ -3869,6 +3873,7 @@ static void process_stat_settings(ADD_STAT add_stats, void *c) {
          ptr = ptr->next) {
         APPEND_STAT("binary_extension", "%s", ptr->get_name());
     }
+    APPEND_STAT("maxconns_fast", "%s", settings.maxconns_fast ? "yes" : "no");
 }
 
 static char *process_stat(conn *c, token_t *tokens, const size_t ntokens) {
@@ -5062,6 +5067,8 @@ bool conn_listening(conn *c)
     int sfd;
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof(addr);
+    int res;
+    const char *str;
 
     if ((sfd = accept(c->sfd, (struct sockaddr *)&addr, &addrlen)) == -1) {
         if (errno == EMFILE) {
@@ -5087,6 +5094,18 @@ bool conn_listening(conn *c)
         STATS_LOCK();
         ++stats.rejected_conns;
         STATS_UNLOCK();
+        if (settings.maxconns_fast &&
+            stats.curr_conns + stats.reserved_fds >= settings.maxconns - 1) {
+            str = "ERROR Too many open connections\r\n";
+            res = write(sfd, str, strlen(str));
+            close(sfd);
+            STATS_LOCK();
+            stats.rejected_conns++;
+            STATS_UNLOCK();
+        } else {
+            dispatch_conn_new(sfd, conn_new_cmd, EV_READ | EV_PERSIST,
+                              DATA_BUFFER_SIZE, tcp_transport);
+        }
 
         if (settings.verbose > 0) {
             settings.extensions.logger->log(EXTENSION_LOG_INFO, c,
@@ -5774,6 +5793,11 @@ static int server_socket(const char *interface,
             /* getaddrinfo can return "junk" addresses,
              * we make sure at least one works before erroring.
              */
+            if (errno == EMFILE) {
+                /* ...unless we're out of fds */
+                perror("server_socket");
+                exit(EX_OSERR);
+            }
             continue;
         }
 
@@ -6136,6 +6160,10 @@ static void usage(void) {
     printf("\nEnvironment variables:\n"
            "MEMCACHED_PORT_FILENAME   File to write port information to\n"
            "MEMCACHED_REQS_TAP_EVENT  Similar to -R but for tap_ship_log\n");
+    printf("-o            Comma separated list of extended or experimental options\n"
+           "              - (EXPERIMENTAL) maxconns_fast: immediately close new\n"
+           "                connections if over maxconns limit\n");
+    return;
 }
 
 static void usage_license(void) {
@@ -6931,6 +6959,20 @@ int main (int argc, char **argv) {
     char old_options[1024] = { [0] = '\0' };
     char *old_opts = old_options;
 
+    char *subopts;
+    char *subopts_value;
+    enum {
+        MAXCONNS_FAST = 0
+    };
+    char *const subopts_tokens[] = {
+        [MAXCONNS_FAST] = "maxconns_fast",
+        NULL
+    };
+
+    if (!sanitycheck()) {
+        return EX_OSERR;
+    }
+
     /* make the time we started always be 2 seconds before we really
        did, so time(0) - time.started is never zero.  if so, things
        like 'settings.oldest_live' which act as booleans as well as
@@ -6987,6 +7029,7 @@ int main (int argc, char **argv) {
           "e:"  /* Engine options */
           "q"   /* Disallow detailed stats */
           "X:"  /* Load extension */
+          "o:"  /* Extended generic options */
         ))) {
         switch (c) {
         case 'a':
@@ -7208,6 +7251,22 @@ int main (int argc, char **argv) {
                 }
             }
             break;
+        case 'o': /* It's sub-opts time! */
+            subopts = optarg;
+
+            while (*subopts != '\0') {
+
+            switch (getsubopt(&subopts, subopts_tokens, &subopts_value)) {
+            case MAXCONNS_FAST:
+                settings.maxconns_fast = true;
+                break;
+            default:
+                printf("Illegal suboption \"%s\"\n", subopts_value);
+                return 1;
+            }
+
+            }
+            break;
         default:
             settings.extensions.logger->log(EXTENSION_LOG_WARNING, NULL,
                     "Illegal argument \"%c\"\n", c);
@@ -7333,6 +7392,11 @@ int main (int argc, char **argv) {
             }
             settings.extensions.logger->log(EXTENSION_LOG_WARNING, NULL,
                                             fmt, req, settings.maxconns);
+        }
+        rlim.rlim_cur = settings.maxconns;
+        if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+            fprintf(stderr, "failed to set rlimit for open files. Try starting as root or requesting smaller maxconns value.\n");
+            exit(EX_OSERR);
         }
     }
 
@@ -7519,6 +7583,15 @@ int main (int argc, char **argv) {
         }
     }
 
+    /* Give the sockets a moment to open. I know this is dumb, but the error
+     * is only an advisory.
+     */
+    usleep(1000);
+    if (stats.curr_conns + stats.reserved_fds >= settings.maxconns - 1) {
+        fprintf(stderr, "Maxconns setting is too low, use -c to increase.\n");
+        exit(EXIT_FAILURE);
+    }
+
     if (pid_file != NULL) {
         save_pid(pid_file);
     }
@@ -7548,3 +7621,4 @@ int main (int argc, char **argv) {
 
     return EXIT_SUCCESS;
 }
+

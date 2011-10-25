@@ -860,6 +860,8 @@ void thread_init(int nthr, struct event_base *main_base,
         threads[i].index = i;
 
         setup_thread(&threads[i], i == (nthreads - 1));
+        /* Reserve three fds for the libevent base, and two for the pipe */
+        stats.reserved_fds += 5;
     }
 
     /* Create threads after we've done all the libevent setup. */
