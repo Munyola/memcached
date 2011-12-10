@@ -49,6 +49,8 @@ extern "C" {
 /* temp */
 #define ITEM_SLABBED (2<<8)
 
+#define ITEM_FETCHED (4<<8)
+
 struct config {
    bool use_cas;
    size_t verbose;
@@ -78,6 +80,8 @@ struct engine_stats {
    uint64_t curr_bytes;
    uint64_t curr_items;
    uint64_t total_items;
+   uint64_t expired_unfetched; /* items reclaimed but never touched */
+   uint64_t evicted_unfetched; /* items evicted but never touched */
 };
 
 struct engine_scrubber {

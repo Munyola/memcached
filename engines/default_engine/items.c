@@ -161,6 +161,12 @@ hash_item *do_item_alloc(struct default_engine *engine,
                     if (search->exptime != 0) {
                         engine->items.itemstats[id].evicted_nonzero++;
                     }
+                    if ((search->iflag & ITEM_FETCHED) == 0) {
+                        pthread_mutex_lock(&engine->stats.lock);
+                        engine->stats.evicted_unfetched++;
+                        pthread_mutex_unlock(&engine->stats.lock);
+                        engine->items.itemstats[id].evicted_unfetched++;
+                    }
                     pthread_mutex_lock(&engine->stats.lock);
                     engine->stats.evictions++;
                     pthread_mutex_unlock(&engine->stats.lock);
@@ -444,9 +450,13 @@ static void do_item_stats(struct default_engine *engine,
             add_statistics(c, add_stats, prefix, i, "outofmemory",
                            "%u", engine->items.itemstats[i].outofmemory);
             add_statistics(c, add_stats, prefix, i, "tailrepairs",
-                           "%u", engine->items.itemstats[i].tailrepairs);;
+                           "%u", engine->items.itemstats[i].tailrepairs);
             add_statistics(c, add_stats, prefix, i, "reclaimed",
-                           "%u", engine->items.itemstats[i].reclaimed);;
+                           "%u", engine->items.itemstats[i].reclaimed);
+            add_statistics(c, add_stats, prefix, i, "expired_unfetched",
+                           "%u", engine->items.itemstats[i].expired_unfetched);
+            add_statistics(c, add_stats, prefix, i, "evicted_unfetched",
+                           "%u", engine->items.itemstats[i].evicted_unfetched);
         }
     }
 }
@@ -542,6 +552,7 @@ hash_item *do_item_get(struct default_engine *engine,
 
     if (it != NULL) {
         it->refcount++;
+        it->iflag |= ITEM_FETCHED;
         DEBUG_REFCNT(it, '+');
         do_item_update(engine, it);
     }

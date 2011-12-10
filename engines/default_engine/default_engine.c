@@ -418,6 +418,10 @@ static ENGINE_ERROR_CODE default_get_stats(ENGINE_HANDLE* handle,
       add_stat("hash_bytes", 15, val, len, cookie);
       len = sprintf(val, "%u", engine->assoc.expanding);
       add_stat("hash_is_expanding", 15, val, len, cookie);
+      len = sprintf(val, "%"PRIu64, (uint64_t)engine->stats.expired_unfetched);
+      add_stat("expired_unfetched", 17, val, len, cookie);
+      len = sprintf(val, "%"PRIu64, (uint64_t)engine->stats.evicted_unfetched);
+      add_stat("evicted_unfetched", 17, val, len, cookie);
       pthread_mutex_unlock(&engine->stats.lock);
 
    } else if (strncmp(stat_key, "slabs", 5) == 0) {

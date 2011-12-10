@@ -29,6 +29,8 @@ typedef struct {
     unsigned int outofmemory;
     unsigned int tailrepairs;
     unsigned int reclaimed;
+    uint64_t expired_unfetched; /* items reclaimed but never touched */
+    uint64_t evicted_unfetched; /* items evicted but never touched */
 } itemstats_t;
 
 struct items {

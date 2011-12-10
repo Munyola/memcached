@@ -223,7 +223,6 @@ static void stats_init(void) {
     stats.daemon_conns = 0;
     stats.rejected_conns = 0;
     stats.curr_conns = stats.total_conns = stats.conn_structs = 0;
-
     stats_prefix_init();
 }
 
