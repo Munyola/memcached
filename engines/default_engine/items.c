@@ -47,7 +47,6 @@ void item_stats_reset(struct default_engine *engine) {
     pthread_mutex_unlock(&engine->cache_lock);
 }
 
-
 /* warning: don't use these macros with a function, as it evals its arg twice */
 static inline size_t ITEM_ntotal(struct default_engine *engine,
                                  const hash_item *item) {
@@ -435,28 +434,27 @@ static void do_item_stats(struct default_engine *engine,
                 /* We removed all of the items in this slab class */
                 continue;
             }
-
             const char *prefix = "items";
             add_statistics(c, add_stats, prefix, i, "number", "%u",
                            engine->items.sizes[i]);
             add_statistics(c, add_stats, prefix, i, "age", "%u",
                            engine->items.tails[i]->time);
             add_statistics(c, add_stats, prefix, i, "evicted",
-                           "%u", engine->items.itemstats[i].evicted);
+                           "%llu", engine->items.itemstats[i].evicted);
             add_statistics(c, add_stats, prefix, i, "evicted_nonzero",
-                           "%u", engine->items.itemstats[i].evicted_nonzero);
+                           "%llu", engine->items.itemstats[i].evicted_nonzero);
             add_statistics(c, add_stats, prefix, i, "evicted_time",
-                           "%u", engine->items.itemstats[i].evicted_time);
+                           "%llu", engine->items.itemstats[i].evicted_time);
             add_statistics(c, add_stats, prefix, i, "outofmemory",
-                           "%u", engine->items.itemstats[i].outofmemory);
+                           "%llu", engine->items.itemstats[i].outofmemory);
             add_statistics(c, add_stats, prefix, i, "tailrepairs",
-                           "%u", engine->items.itemstats[i].tailrepairs);
+                           "%llu", engine->items.itemstats[i].tailrepairs);
             add_statistics(c, add_stats, prefix, i, "reclaimed",
-                           "%u", engine->items.itemstats[i].reclaimed);
+                           "%llu", engine->items.itemstats[i].reclaimed);
             add_statistics(c, add_stats, prefix, i, "expired_unfetched",
-                           "%u", engine->items.itemstats[i].expired_unfetched);
+                           "%llu", engine->items.itemstats[i].expired_unfetched);
             add_statistics(c, add_stats, prefix, i, "evicted_unfetched",
-                           "%u", engine->items.itemstats[i].evicted_unfetched);
+                           "%llu", engine->items.itemstats[i].evicted_unfetched);
         }
     }
 }

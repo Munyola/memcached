@@ -23,12 +23,12 @@ typedef struct _hash_item {
 } hash_item;
 
 typedef struct {
-    unsigned int evicted;
-    unsigned int evicted_nonzero;
+    uint64_t evicted;
+    uint64_t evicted_nonzero;
     rel_time_t evicted_time;
-    unsigned int outofmemory;
-    unsigned int tailrepairs;
-    unsigned int reclaimed;
+    uint64_t outofmemory;
+    uint64_t tailrepairs;
+    uint64_t reclaimed;
     uint64_t expired_unfetched; /* items reclaimed but never touched */
     uint64_t evicted_unfetched; /* items evicted but never touched */
 } itemstats_t;
