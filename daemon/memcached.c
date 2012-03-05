@@ -6950,6 +6950,7 @@ int main (int argc, char **argv) {
     struct rlimit rlim;
     char unit = '\0';
     int size_max = 0;
+    int retval = EXIT_SUCCESS;
 
     bool protocol_specified = false;
     bool tcp_specified = false;
@@ -7603,7 +7604,9 @@ int main (int argc, char **argv) {
 
     if (!memcached_shutdown) {
         /* enter the event loop */
-        event_base_loop(main_base, 0);
+        if (event_base_loop(main_base, 0) != 0) {
+            retval = EXIT_FAILURE;
+        }
     }
 
     if (settings.verbose) {
@@ -7621,6 +7624,6 @@ int main (int argc, char **argv) {
     if (settings.inter)
       free(settings.inter);
 
-    return EXIT_SUCCESS;
+    return retval;
 }
 
